@@ -1,9 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-        <title>{{ title }} - Microbiology</title>
+    <head>
+        {%  if title %}
+        <title>{{ title }}Home - WebInterface</title>
+        {% else %}
+        <title>{{ title }}Welcome to WebInterface</title>
     </head>
+
     <body>
-        <h1>Hello, {{ user.username }}!</h1>
+        <div>
+            WebInterface:
+            <a href="/index">Home</a>
+            <a href="/login">Home</a>
+        </div>
+        <hr>
+
+        {% with messages= get_flashed_messages() %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                    <li> {{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
     </body>
 </html>
