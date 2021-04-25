@@ -1,15 +1,31 @@
-from flask_login import logout_user
-
-from app import app, tasks, posts
-from app.forms import Login
+from flask_login import logout_user, current_user, login_user, login_required
+from app import app, tasks, posts, db
+from app.forms import FormLogin, RegistrationForm
 from flask import abort, jsonify, request, make_response
 from flask import render_template, url_for, redirect, flash
 from flask_httpauth import HTTPBasicAuth
+from app.models import User
+from werkzeug.urls import url_parse
 
 auth = HTTPBasicAuth()
 defaultTask = '/todo/api/v.1.0/tasks'
 defaultPost = '/todo/api/v.1.0/posts'
 
+
+@app.route('/')
+@app.route('/index')
+@login_required
+def index():
+    user = {'username': 'Miguel'}
+    hmmm = tasks
+
+    return render_template('index.html', title='Home', user=user, taskLst=hmmm)
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 
 @auth.get_password
@@ -34,24 +50,25 @@ def make_public_task(task):
     return new_task
 
 
-@app.route('/')
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    form = Login()
-    if form.validate_on_submit():
-        flash('Login requested for user {}, remember_me{}'.format(
-            form.username.data, form.remember_me.data))
+    if current_user.is_authenticated:
         return redirect(url_for('index'))
-    return render_template('login.html', title='Sign In', form=form)
 
+    form = FormLogin()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password(form.password.data):
+            flash('Invalid username or password')
+            return redirect(url_for('login'))
 
-@app.route('/index')
-@auth.login_required()
-def index():
-    user = {'username': 'Miguel'}
-    hmmm = posts
+        login_user(user, remember=form.remember_me.data)
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            next_page = url_for('index')
+        return redirect(next_page)
 
-    return render_template('index.html', title='Home', user=user, post=hmmm)
+    return render_template('login.html', title='Sign In', test=form)
 
 
 @app.route(defaultPost, methods=['GET'])
@@ -64,6 +81,21 @@ def get_posts():
 @auth.login_required()
 def get_tasks():
     return jsonify({'tasks': [make_public_task(task) for task in tasks]})
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = RegistrationForm()
+    if register.validate_on_submit():
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('You have created a new user. WELL DONE')
+        return redirect((url_for('login')))
+    return render_template('registration.html', title='registration', test2=form)
 
 
 @app.route(defaultTask, methods=['POST'])
