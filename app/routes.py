@@ -4,7 +4,7 @@ from app.forms import FormLogin, RegistrationForm
 from flask import abort, jsonify, request, make_response
 from flask import render_template, url_for, redirect, flash
 from flask_httpauth import HTTPBasicAuth
-from app.models import User
+from app.models import User, Task
 from werkzeug.urls import url_parse
 
 auth = HTTPBasicAuth()
@@ -16,8 +16,8 @@ defaultPost = '/todo/api/v.1.0/posts'
 @app.route('/index')
 @login_required
 def index():
-    user = {'username': 'Miguel'}
-    hmmm = tasks
+    user = User.query.filter_by(username=current_user.username).first_or_404()
+    hmmm = Task.query.filter_by(user_id=current_user.id)
 
     return render_template('index.html', title='Home', user=user, taskLst=hmmm)
 
@@ -85,17 +85,18 @@ def get_tasks():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
+    #if current_user.is_authenticated:
+    #    return redirect(url_for('index'))
+
     form = RegistrationForm()
-    if register.validate_on_submit():
+    if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
         flash('You have created a new user. WELL DONE')
         return redirect((url_for('login')))
-    return render_template('registration.html', title='registration', test2=form)
+    return render_template('registration.html', title='registration', test=form)
 
 
 @app.route(defaultTask, methods=['POST'])

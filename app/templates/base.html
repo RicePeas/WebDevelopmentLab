@@ -16,7 +16,12 @@
         {% if current_user.is_anonymous %}
         <a href="/login">Login</a>
         {% endif %}
+        {% if current_user.is_authenticated %}
         <a href="/logout">Logout</a>
+        {% endif %}
+        {% if current_user.admin_status==True %}
+        <a href="/register">Register</a>
+        {% endif %}
     </div>
     <hr>
 
